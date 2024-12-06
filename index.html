@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chatbot</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background-color: black;
+      }
+
+      .chatbot-button {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 0;
+        height: 0;
+        opacity: 0;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        transition: all 0.5s ease;
+        z-index: 100;
+        transition: all 1s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+      }
+
+      .visible-button {
+        width: 60px;
+        height: 60px;
+        opacity: 1;
+      }
+
+      .chatbot-button img {
+        width: 40px;
+        height: 40px;
+      }
+      .resizable {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: #fff;
+        overflow: hidden;
+        transition: all 1s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        opacity: 0;
+        z-index: 90;
+        border-radius: 0.75rem;
+      }
+      .expanded {
+        width: 300px;
+        height: 500px;
+        opacity: 1;
+      }
+      .resizeableIframe {
+        width: 100%;
+        height: calc(100% - 20px);
+        border: none;
+      }
+      .resize-handle {
+        position: absolute;
+        width: 15px;
+        height: 15px;
+        rotate: 135deg;
+        cursor: nw-resize;
+        z-index: 3;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 3px;
+      }
+      .resize-handle-line {
+        width: 100%;
+        height: 2px;
+        background-color: #f0f0f0;
+      }
+      .resize-handle-nw {
+        top: 0;
+        left: 0;
+      }
+      .drag-handle {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 20px;
+        cursor: move;
+        z-index: 2;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      const chatbotButton = document.createElement("div");
+      chatbotButton.id = "chatbotButton";
+      chatbotButton.className = "chatbot-button visible-button";
+      const chatbotIcon = document.createElement("img");
+      chatbotIcon.src = "../src/assets/chatbot-icon.svg";
+      chatbotIcon.alt = "Chatbot";
+      chatbotButton.appendChild(chatbotIcon);
+
+      const resizableDiv = document.createElement("div");
+      resizableDiv.id = "resizableDiv";
+      resizableDiv.className = "resizable";
+
+      const dragHandle = document.createElement("div");
+      dragHandle.className = "drag-handle";
+      resizableDiv.appendChild(dragHandle);
+
+      const resizableIframe = document.createElement("iframe");
+      resizableIframe.id = "resizableIframe";
+      resizableIframe.className = "resizeableIframe";
+      resizableIframe.src = "http://localhost:5173/question_res";
+      resizableIframe.frameBorder = "0";
+      resizableDiv.appendChild(resizableIframe);
+
+      const resizeHandle = document.createElement("div");
+      resizeHandle.className = "resize-handle resize-handle-nw";
+      for (let i = 0; i < 3; i++) {
+        const line = document.createElement("div");
+        line.className = "resize-handle-line";
+        resizeHandle.appendChild(line);
+      }
+      resizableDiv.appendChild(resizeHandle);
+
+      document.body.appendChild(chatbotButton);
+      document.body.appendChild(resizableDiv);
+
+      function showChatbotButton() {
+        resizableDiv.classList.remove("expanded");
+        chatbotButton.classList.add("visible-button");
+      }
+
+      function showChatbotIframe() {
+        resizableDiv.classList.add("expanded");
+        chatbotButton.classList.remove("visible-button");
+      }
+
+      chatbotButton.addEventListener("click", showChatbotIframe);
+
+      window.addEventListener(
+        "message",
+        function (event) {
+          if (event.data === "showChatbotButton") {
+            showChatbotButton();
+          }
+        },
+        false
+      );
+
+      // Dragging functionality
+      let isDragging = false;
+      let startX, startY;
+
+      dragHandle.addEventListener("mousedown", startDragging);
+      document.addEventListener("mousemove", drag);
+      document.addEventListener("mouseup", stopDragging);
+
+      function startDragging(e) {
+        isDragging = true;
+        startX = e.clientX - resizableDiv.offsetLeft;
+        startY = e.clientY - resizableDiv.offsetTop;
+        resizableDiv.style.transition = "none";
+      }
+
+      function drag(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        const newX = e.clientX - startX;
+        const newY = e.clientY - startY;
+        resizableDiv.style.left = `${newX}px`;
+        resizableDiv.style.top = `${newY}px`;
+      }
+
+      function stopDragging() {
+        isDragging = false;
+        resizableDiv.style.transition = "";
+      }
+
+      // Resizing functionality
+      let isResizing = false;
+
+      resizeHandle.addEventListener("mousedown", startResizing);
+      document.addEventListener("mousemove", resize);
+      document.addEventListener("mouseup", stopResizing);
+
+      function startResizing(e) {
+        isResizing = true;
+        e.stopPropagation();
+        resizableDiv.style.transition = "none";
+      }
+
+      function resize(e) {
+        if (!isResizing) return;
+        e.preventDefault();
+        const newWidth =
+          resizableDiv.offsetLeft + resizableDiv.offsetWidth - e.clientX;
+        const newHeight =
+          resizableDiv.offsetTop + resizableDiv.offsetHeight - e.clientY;
+        const newLeft = e.clientX;
+        const newTop = e.clientY;
+
+        if (newWidth >= 300 && newHeight >= 200) {
+          resizableDiv.style.width = `${newWidth}px`;
+          resizableDiv.style.height = `${newHeight}px`;
+          resizableDiv.style.left = `${newLeft}px`;
+          resizableDiv.style.top = `${newTop}px`;
+        }
+      }
+
+      function stopResizing() {
+        isResizing = false;
+        resizableDiv.style.transition = "";
+      }
+    </script>
+  </body>
+</html>
